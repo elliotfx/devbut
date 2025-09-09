@@ -42,30 +42,127 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- Shake ---
+  // --- Fonctionnalité Shake/Unshake refactorisée ---
   const img = document.querySelector(".image1");
   const table = document.getElementById("table-users");
 
-  function shakeElement(el) {
-    if (el) {
-      el.classList.add("shake");
+  // Objet pour tracker l'état de shake de chaque élément
+  const shakeStates = new Map();
+
+  /**
+   * Fonction unifiée pour gérer le shake/unshake d'un élément
+   * @param {string} elementId - L'ID de l'élément
+   */
+  function toggleShake(elementId) {
+    const element = document.getElementById(elementId) || document.querySelector(elementId);
+    
+    if (!element) {
+      console.warn(`Élément avec l'ID/sélecteur "${elementId}" non trouvé`);
+      return;
+    }
+
+    const isCurrentlyShaking = shakeStates.get(elementId) || false;
+
+    if (isCurrentlyShaking) {
+      // Unshake : arrêter le shake
+      element.classList.remove("shake");
+      shakeStates.set(elementId, false);
+      console.log(`Élément ${elementId} : shake arrêté`);
+    } else {
+      // Shake : démarrer le shake
+      element.classList.add("shake");
+      shakeStates.set(elementId, true);
+      console.log(`Élément ${elementId} : shake démarré`);
+      
+      // Optionnel : arrêter automatiquement le shake après 5 secondes
+      // Décommentez les lignes suivantes si vous voulez cette fonctionnalité
+      /*
       setTimeout(() => {
-        el.classList.remove("shake");
-      }, 500);
+        if (shakeStates.get(elementId)) {
+          toggleShake(elementId);
+        }
+      }, 5000);
+      */
     }
   }
 
-  if (img) {
-    img.addEventListener("click", () => shakeElement(img));
+  /**
+   * Fonction pour obtenir le texte du bouton en fonction de l'état
+   * @param {string} elementId - L'ID de l'élément
+   * @returns {string} - Le texte à afficher sur le bouton
+   */
+  function getButtonText(elementId) {
+    const isShaking = shakeStates.get(elementId) || false;
+    const elementName = elementId.includes('image') ? 'Image' : 
+                       elementId.includes('table') ? 'Tableau' : 'Élément';
+    return isShaking ? `Arrêter ${elementName}` : `Shaker ${elementName}`;
   }
 
-  if (table) {
-    table.addEventListener("click", () => {
-      shakeElement(table);
-      shakeElement(img); 
+  // --- Création du bouton unique pour contrôler les éléments ---
+  function createShakeButton() {
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.margin = "20px 0";
+    buttonContainer.style.textAlign = "center";
+
+    // Bouton pour l'image
+    const imgButton = document.createElement("button");
+    imgButton.textContent = getButtonText(".image1");
+    imgButton.style.margin = "5px 10px";
+    imgButton.style.padding = "10px 15px";
+    imgButton.style.backgroundColor = "#007bff";
+    imgButton.style.color = "white";
+    imgButton.style.border = "none";
+    imgButton.style.borderRadius = "5px";
+    imgButton.style.cursor = "pointer";
+
+    // Bouton pour le tableau
+    const tableButton = document.createElement("button");
+    tableButton.textContent = getButtonText("#table-users");
+    tableButton.style.margin = "5px 10px";
+    tableButton.style.padding = "10px 15px";
+    tableButton.style.backgroundColor = "#28a745";
+    tableButton.style.color = "white";
+    tableButton.style.border = "none";
+    tableButton.style.borderRadius = "5px";
+    tableButton.style.cursor = "pointer";
+
+    // Event listeners
+    imgButton.addEventListener("click", () => {
+      toggleShake(".image1");
+      imgButton.textContent = getButtonText(".image1");
     });
+
+    tableButton.addEventListener("click", () => {
+      toggleShake("#table-users");
+      tableButton.textContent = getButtonText("#table-users");
+    });
+
+    // Hover effects
+    [imgButton, tableButton].forEach(btn => {
+      btn.addEventListener("mouseover", () => {
+        btn.style.opacity = "0.8";
+      });
+      btn.addEventListener("mouseout", () => {
+        btn.style.opacity = "1";
+      });
+    });
+
+    buttonContainer.appendChild(imgButton);
+    buttonContainer.appendChild(tableButton);
+
+    // Insérer les boutons après le tableau
+    if (table && table.parentNode) {
+      table.parentNode.insertBefore(buttonContainer, table.nextSibling);
+    }
   }
 
+  // Supprimer les anciens event listeners de click sur l'image et le tableau
+  // et créer les nouveaux boutons
+  if (img || table) {
+    createShakeButton();
+  }
+
+  // --- API Users (code existant) ---
   async function loadUsers() {
     const url = "https://jsonplaceholder.typicode.com/users";
     try {

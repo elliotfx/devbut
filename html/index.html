@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./../css/style.css">
     <title>Site de Elliot Le Boss</title>
-    <link rel="stylesheet" href=".././css/style.css">
 </head>
 
 <body>
@@ -13,11 +13,10 @@
     <h1 id="fromjs">from JS</h1>
     <p id="heure"></p>
     <h2 id="welcome">Welcome to the DOM</h2>
-    Le cintenus tu connais
+    Le contenu tu connais
     <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Asperiores tempora libero consequuntur illum vitae
         quidem, autem vero nulla praesentium ut repellendus quae repellat earum ex enim, iure dolorem dignissimos.
         Molestiae.</p>
-
 
     <ul id="maListe">
         <li>Pomme</li>
@@ -26,6 +25,7 @@
 
     <a href="https://www.w3schools.com/html/">print le html OwO</a>
     <a href="https://www.w3schools.com/css/">print le css OwO</a>
+    
     <img src="https://picsum.photos/200" alt="" class="image1">
 
     <table id="table-users">
@@ -53,7 +53,182 @@
 
     <a href="./page2.html">page suivante</a>
 
-    <script src=".././js/script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Hello world from script.js");
+
+            let fromjs = document.getElementById("fromjs");
+            fromjs.style.color = "red";
+
+            let welcome = document.getElementById("welcome");
+            welcome.style.color = "orange";
+            welcome.style.fontSize = "30px";
+
+            // --- Afficher l'heure en direct ---
+            function afficherHeure() {
+                const maintenant = new Date();
+                const heure = maintenant.toLocaleTimeString();
+                document.getElementById("heure").textContent = heure;
+            }
+            afficherHeure();
+            setInterval(afficherHeure, 1000);
+
+            // --- Liste ---
+            const liste = document.getElementById("maListe");
+            if (liste && liste.firstElementChild) {
+                liste.removeChild(liste.firstElementChild);
+                console.log("Premier élément supprimé de la liste.");
+            }
+
+            if (liste) {
+                const nouvelElement = document.createElement("li");
+                nouvelElement.textContent = "Orange";
+                liste.appendChild(nouvelElement);
+                console.log("Nouvel élément ajouté à la liste.");
+            }
+
+            // --- Caption hover ---
+            const caption = document.querySelector("caption");
+            if (caption) {
+                caption.addEventListener("mouseover", () => {
+                    caption.style.backgroundColor = "#ffe066";
+                });
+                caption.addEventListener("mouseout", () => {
+                    caption.style.backgroundColor = "";
+                });
+            }
+
+            // --- Fonctionnalité Shake/Unshake refactorisée ---
+            const img = document.querySelector(".image1");
+            const table = document.getElementById("table-users");
+
+            // Objet pour tracker l'état de shake de chaque élément
+            const shakeStates = new Map();
+
+            /**
+             * Fonction unifiée pour gérer le shake/unshake d'un élément
+             * @param {string} elementSelector - Le sélecteur de l'élément
+             */
+            function toggleShake(elementSelector) {
+                const element = document.querySelector(elementSelector);
+                
+                if (!element) {
+                    console.warn(`Élément avec le sélecteur "${elementSelector}" non trouvé`);
+                    return;
+                }
+
+                const isCurrentlyShaking = shakeStates.get(elementSelector) || false;
+
+                if (isCurrentlyShaking) {
+                    // Unshake : arrêter le shake
+                    element.classList.remove("shake");
+                    shakeStates.set(elementSelector, false);
+                    console.log(`Élément ${elementSelector} : shake arrêté`);
+                } else {
+                    // Shake : démarrer le shake
+                    element.classList.add("shake");
+                    shakeStates.set(elementSelector, true);
+                    console.log(`Élément ${elementSelector} : shake démarré`);
+                }
+            }
+
+            /**
+             * Fonction pour obtenir le texte du bouton en fonction de l'état
+             * @param {string} elementSelector - Le sélecteur de l'élément
+             * @returns {string} - Le texte à afficher sur le bouton
+             */
+            function getButtonText(elementSelector) {
+                const isShaking = shakeStates.get(elementSelector) || false;
+                const elementName = elementSelector.includes('image') ? 'Image' : 
+                                   elementSelector.includes('table') ? 'Tableau' : 'Élément';
+                return isShaking ? `Arrêter ${elementName}` : `Shaker ${elementName}`;
+            }
+
+            // --- Création des boutons de contrôle ---
+            function createShakeButtons() {
+                // Conteneur pour les boutons
+                const buttonContainer = document.createElement("div");
+                buttonContainer.className = "button-container";
+
+                // Bouton pour l'image
+                if (img) {
+                    const imgButton = document.createElement("button");
+                    imgButton.className = "shake-button img-button";
+                    imgButton.textContent = getButtonText(".image1");
+                    imgButton.addEventListener("click", () => {
+                        toggleShake(".image1");
+                        imgButton.textContent = getButtonText(".image1");
+                    });
+                    buttonContainer.appendChild(imgButton);
+                }
+
+                // Bouton pour le tableau
+                if (table) {
+                    const tableButton = document.createElement("button");
+                    tableButton.className = "shake-button table-button";
+                    tableButton.textContent = getButtonText("#table-users");
+                    tableButton.addEventListener("click", () => {
+                        toggleShake("#table-users");
+                        tableButton.textContent = getButtonText("#table-users");
+                    });
+                    buttonContainer.appendChild(tableButton);
+                }
+
+                // Insérer les boutons dans le body (après l'image)
+                if (img && img.parentNode) {
+                    img.parentNode.insertBefore(buttonContainer, img.nextSibling);
+                }
+            }
+
+            // Créer les boutons après le chargement du DOM
+            createShakeButtons();
+
+            // --- API Users (code existant) ---
+            async function loadUsers() {
+                const url = "https://jsonplaceholder.typicode.com/users";
+                try {
+                    renderStatus("Chargement...");
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const users = await res.json();
+                    renderTable(users);
+                    renderStatus(""); 
+                } catch (err) {
+                    console.error(err);
+                    renderStatus("Erreur de chargement");
+                }
+            }
+
+            function renderTable(users) {
+                if (!table) return;
+                const tbody = table.querySelector("tbody");
+                tbody.innerHTML = ""; 
+
+                users.forEach((u) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${u.name}</td>
+                        <td>${u.username}</td>
+                        <td>${u.email}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function renderStatus(msg) {
+                if (!caption) return;
+                if (!caption.dataset.defaultText) caption.dataset.defaultText = caption.textContent || "People";
+                caption.textContent = msg || caption.dataset.defaultText;
+            }
+
+            if (caption) {
+                caption.title = "Clique pour recharger les données";
+                caption.addEventListener("click", loadUsers);
+            }
+
+            loadUsers();
+        });
+    </script>
 
 </body>
 
